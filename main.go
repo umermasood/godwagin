@@ -6,6 +6,7 @@ import (
 	"github.com/rs/xid"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -64,6 +65,40 @@ func UpdateRecipeHandler(context *gin.Context) {
 	})
 }
 
+func DeleteRecipeHandler(context *gin.Context) {
+	id := context.Param("id")
+
+	for i, recp := range recipes {
+		if recp.ID == id {
+			recipes = append(recipes[:i], recipes[i+1:]...)
+			context.JSON(http.StatusOK, gin.H{
+				"message": "Recipe Deleted Successfully!",
+			})
+			return
+		}
+	}
+
+	context.JSON(http.StatusNotFound, gin.H{
+		"error": "Recipe not found!",
+	})
+}
+
+func SearchRecipesHandler(context *gin.Context) {
+	tag := context.Query("tag")
+	matchingRecipes := make([]Recipe, 0)
+
+	for _, recipe := range recipes {
+		for _, t := range recipe.Tags {
+			if strings.EqualFold(tag, t) {
+				matchingRecipes = append(matchingRecipes, recipe)
+				break
+			}
+		}
+	}
+
+	context.JSON(http.StatusOK, matchingRecipes)
+}
+
 func init() {
 	recipes = make([]Recipe, 0)
 	file, _ := ioutil.ReadFile("recipes.json")
@@ -77,6 +112,8 @@ func main() {
 	router.POST("/recipes", NewRecipeHandler)
 	router.GET("/recipes", ListRecipesHandler)
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
+	router.DELETE("/recipes/:id", DeleteRecipeHandler)
+	router.GET("/recipes/search", SearchRecipesHandler)
 	if err := router.Run(); err != nil {
 		return
 	}
