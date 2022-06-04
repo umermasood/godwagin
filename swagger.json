@@ -10,11 +10,11 @@
   ],
   "swagger": "2.0",
   "info": {
-    "description": "This is a Recipes API.",
+    "description": "This is the Recipe API",
     "title": "Recipes API",
     "contact": {
       "name": "M Umer Masood",
-      "url": "https://github.com/umermasood/godwagin",
+      "url": "https://github.com/umermasood",
       "email": "umermasood.dev@gmail.com"
     },
     "version": "1.0.0"
@@ -47,48 +47,6 @@
           "recipes"
         ],
         "operationId": "newRecipe",
-        "parameters": [
-          {
-            "type": "string",
-            "x-go-name": "Name",
-            "name": "name",
-            "in": "query"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "x-go-name": "Tags",
-            "name": "tags",
-            "in": "query"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "x-go-name": "Ingredients",
-            "name": "ingredients",
-            "in": "query"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "x-go-name": "Instructions",
-            "name": "instructions",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "format": "date-time",
-            "x-go-name": "PublishedAt",
-            "name": "publishedAt",
-            "in": "query"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful operation"
@@ -126,33 +84,6 @@
       }
     },
     "/recipes/{id}": {
-      "get": {
-        "description": "Get one recipe",
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "recipes"
-        ],
-        "operationId": "oneRecipe",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "ID of the recipe",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation"
-          },
-          "404": {
-            "description": "Invalid recipe ID"
-          }
-        }
-      },
       "put": {
         "description": "Update an existing recipe",
         "produces": [
