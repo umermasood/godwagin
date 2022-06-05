@@ -18,8 +18,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"io/ioutil"
+	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"net/http"
 	"os"
@@ -34,6 +33,10 @@ import (
 )
 
 var recipes []Recipe
+var ctx context.Context
+var err error
+var client *mongo.Client
+var collection *mongo.Collection
 
 type Recipe struct {
 	ID           string    `json:"id"`
@@ -78,8 +81,22 @@ func NewRecipeHandler(context *gin.Context) {
 // responses:
 //     '200':
 //         description: Successful operation
-func ListRecipesHandler(context *gin.Context) {
-	context.JSON(http.StatusOK, recipes)
+func ListRecipesHandler(c *gin.Context) {
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer cursor.Close(ctx)
+
+	recipes := make([]Recipe, 0)
+	for cursor.Next(ctx) {
+		var recipe Recipe
+		cursor.Decode(&recipe)
+		recipes = append(recipes, recipe)
+	}
+
+	c.JSON(http.StatusOK, recipes)
 }
 
 // swagger:operation PUT /recipes/{id} recipes updateRecipe
@@ -191,30 +208,17 @@ func SearchRecipesHandler(context *gin.Context) {
 }
 
 func init() {
-	recipes = make([]Recipe, 0)
-	file, _ := ioutil.ReadFile("recipes.json")
-	if err := json.Unmarshal(file, &recipes); err != nil {
-		return
+	ctx = context.Background()
+	if client, err = mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_URI"))); err != nil {
+		panic(err)
 	}
 
-	ctx := context.Background()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_URI")))
 	if err = client.Ping(context.TODO(), readpref.Primary()); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Connected to MongoDB")
 
-	var listOfRecipes []interface{}
-	for _, recipe := range recipes {
-		listOfRecipes = append(listOfRecipes, recipe)
-	}
-
-	collection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
-	insertManyResult, err := collection.InsertMany(ctx, listOfRecipes)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Inserted recipes: ", len(insertManyResult.InsertedIDs))
+	collection = client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
 }
 
 func main() {
