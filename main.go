@@ -18,28 +18,14 @@ package main
 
 import (
 	"context"
-	"godwagin/handlers"
-	"log"
-	"os"
-	"time"
-
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"godwagin/handlers"
+	"log"
+	"os"
 )
-
-// swagger:parameters recipes newRecipe
-type Recipe struct {
-	//swagger:ignore
-	ID           primitive.ObjectID `json:"id" bson:"_id"`
-	Name         string             `json:"name" bson:"name"`
-	Tags         []string           `json:"tags" bson:"tags"`
-	Ingredients  []string           `json:"ingredients" bson:"ingredients"`
-	Instructions []string           `json:"instructions" bson:"instructions"`
-	PublishedAt  time.Time          `json:"publishedAt" bson:"publishedAt"`
-}
 
 var recipesHandler *handlers.RecipesHandler
 
