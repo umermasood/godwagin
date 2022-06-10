@@ -53,7 +53,7 @@ func init() {
 	status := redisClient.Ping(ctx)
 	log.Println(status)
 
-	recipesHandler = handlers.NewRecipesHandler(ctx, collection)
+	recipesHandler = handlers.NewRecipesHandler(ctx, collection, redisClient)
 }
 
 func main() {
