@@ -53,6 +53,9 @@ func (handler *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 		return
 	}
 
+	log.Println("Remove cache from Redis")
+	handler.redisClient.Del(handler.ctx, "recipes")
+
 	c.JSON(http.StatusOK, recipe)
 }
 
@@ -135,6 +138,9 @@ func (handler *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	log.Println("Clearing Redis Cache")
+	handler.redisClient.Del(handler.ctx, "recipes")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been updated"})
 }
