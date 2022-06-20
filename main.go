@@ -18,14 +18,15 @@ package main
 
 import (
 	"context"
+	"godwagin/handlers"
+	"log"
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"godwagin/handlers"
-	"log"
-	"os"
 )
 
 var recipesHandler *handlers.RecipesHandler
