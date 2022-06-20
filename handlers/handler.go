@@ -172,6 +172,11 @@ func (handler *RecipesHandler) DeleteRecipeHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been deleted"})
+
+	log.Println("Clearing Redis Cache")
+	handler.redisClient.Del(handler.ctx, "recipes")
+
+	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been updated"})
 }
 
 // swagger:operation GET /recipes/{id} recipes
