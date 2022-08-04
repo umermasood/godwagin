@@ -29,6 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
+var authHandler *handlers.AuthHandler
 var recipesHandler *handlers.RecipesHandler
 
 func init() {
@@ -55,25 +56,17 @@ func init() {
 	log.Println(status)
 
 	recipesHandler = handlers.NewRecipesHandler(ctx, collection, redisClient)
-}
-
-func AuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if c.GetHeader("X-API-KEY") !=
-			os.Getenv("X_API_KEY") {
-			c.AbortWithStatus(401)
-		}
-		c.Next()
-	}
+	authHandler = &handlers.AuthHandler{}
 }
 
 func main() {
 	router := gin.Default()
 
 	router.GET("/recipes", recipesHandler.ListRecipesHandler)
+	router.POST("/login", authHandler.LoginHandler)
 
 	authorized := router.Group("/")
-	authorized.Use(AuthMiddleware())
+	authorized.Use(authHandler.AuthMiddleware())
 	{
 		authorized.POST("/recipes", recipesHandler.NewRecipeHandler)
 		authorized.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
