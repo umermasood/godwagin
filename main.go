@@ -2,17 +2,18 @@
 //
 // This is the Recipe API
 //
-//	Schemes: http
-//  Host: localhost:8080
-//	BasePath: /
-//	Version: 1.0.0
-//	Contact: M Umer Masood <umermasood.dev@gmail.com> https://github.com/umermasood
+//		Schemes: http
+//	 Host: localhost:8080
+//		BasePath: /
+//		Version: 1.0.0
+//		Contact: M Umer Masood <umermasood.dev@gmail.com> https://github.com/umermasood
 //
-//	Consumes:
-//	- application/json
+//		Consumes:
+//		- application/json
 //
-//	Produces:
-//	- application/json
+//		Produces:
+//		- application/json
+//
 // swagger:meta
 package main
 
@@ -44,7 +45,7 @@ func init() {
 	}
 	log.Println("Connected to MongoDB")
 
-	collection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
+	recipesCollection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     "localhost:55000",
@@ -55,8 +56,10 @@ func init() {
 	status := redisClient.Ping(ctx)
 	log.Println(status)
 
-	recipesHandler = handlers.NewRecipesHandler(ctx, collection, redisClient)
-	authHandler = &handlers.AuthHandler{}
+	recipesHandler = handlers.NewRecipesHandler(ctx, recipesCollection, redisClient)
+
+	usersCollection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("users")
+	authHandler = handlers.NewAuthHandler(ctx, usersCollection)
 }
 
 func main() {
