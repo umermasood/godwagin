@@ -2,16 +2,18 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
+	"net/http"
+	"time"
+
+	"godwagin/models"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"godwagin/models"
 	"golang.org/x/net/context"
-	"log"
-	"net/http"
-	"time"
 )
 
 type RecipesHandler struct {
