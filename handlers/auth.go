@@ -2,19 +2,18 @@ package handlers
 
 import (
 	"crypto/sha256"
-	"github.com/gin-contrib/sessions"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/net/context"
 	"net/http"
-	"os"
 	"time"
 
 	"godwagin/models"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/xid"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/net/context"
 )
 
 type AuthHandler struct {
@@ -39,6 +38,17 @@ type JWTOutput struct {
 	Expires time.Time `json:"expires"`
 }
 
+// swagger:operation POST /login auth logs in
+// Login with username and password
+// ---
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//	    description: Successful operation
+//	'401':
+//	    description: Invalid credentials
 func (handler *AuthHandler) LoginHandler(c *gin.Context) {
 	var user models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -62,60 +72,68 @@ func (handler *AuthHandler) LoginHandler(c *gin.Context) {
 	session.Set("username", user.Username)
 	session.Set("token", sessionToken)
 	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error:": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User signed in"})
 }
 
+// swagger:operation POST /refresh auth refresh
+// Refresh token
+// ---
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//	    description: Successful operation
+//	'401':
+//	    description: Invalid credentials
+func (handler *AuthHandler) RefreshHandler(c *gin.Context) {
+	session := sessions.Default(c)
+	sessionToken := session.Get("token")
+	sessionUser := session.Get("username")
+	if sessionToken == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session cookie"})
+		return
+	}
+
+	sessionToken = xid.New().String()
+	session.Set("username", sessionUser.(string))
+	session.Set("token", sessionToken)
+	if err := session.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error:": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "New session issued"})
+}
+
+// swagger:operation POST /login auth Logout
+// Signing out
+// ---
+// responses:
+//
+//	'200':
+//	    description: Successful operation
+func (handler *AuthHandler) LogoutHandler(c *gin.Context) {
+	session := sessions.Default(c)
+	session.Clear()
+	if err := session.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error:": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out..."})
+}
+
 func (handler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		if sessionToken := session.Get("token"); sessionToken == nil {
-			c.JSON(http.StatusForbidden, gin.H{"message": "Not logged"})
+			c.JSON(http.StatusForbidden, gin.H{"message": "Not logged in"})
 			c.Abort()
 		}
 		c.Next()
 	}
-}
-
-func (handler *AuthHandler) RefreshHandler(c *gin.Context) {
-	tokenValue := c.GetHeader("Authorization")
-
-	claims := &Claims{}
-	tkn, err := jwt.ParseWithClaims(tokenValue, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
-	}
-
-	if tkn == nil || !tkn.Valid {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-		return
-	}
-
-	if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) > 30*time.Second {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Token is not expired yet"})
-		return
-	}
-
-	expirationTime := time.Now().Add(5 * time.Minute)
-	claims.ExpiresAt = expirationTime.Unix()
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	jwtOutput := JWTOutput{
-		Token:   tokenString,
-		Expires: expirationTime,
-	}
-	c.JSON(http.StatusOK, jwtOutput)
 }
