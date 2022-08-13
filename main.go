@@ -19,14 +19,12 @@ package main
 
 import (
 	"context"
+	"github.com/go-redis/redis"
 	"godwagin/handlers"
 	"log"
 	"os"
 
-	"github.com/gin-contrib/sessions"
-	redisStore "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -55,7 +53,7 @@ func init() {
 		DB:       0,
 	})
 
-	status := redisClient.Ping(ctx)
+	status := redisClient.Ping()
 	log.Println(status)
 
 	recipesHandler = handlers.NewRecipesHandler(ctx, recipesCollection, redisClient)
@@ -67,13 +65,7 @@ func init() {
 func main() {
 	router := gin.Default()
 
-	store, _ := redisStore.NewStore(10, "tcp", "localhost:55000", "redispw", []byte("secret"))
-	router.Use(sessions.Sessions("recipes_api", store))
-
 	router.GET("/recipes", recipesHandler.ListRecipesHandler)
-	router.POST("/login", authHandler.LoginHandler)
-	router.POST("/refresh", authHandler.RefreshHandler)
-	router.POST("/logout", authHandler.LogoutHandler)
 
 	authorized := router.Group("/")
 	authorized.Use(authHandler.AuthMiddleware())

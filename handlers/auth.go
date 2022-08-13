@@ -1,19 +1,14 @@
 package handlers
 
 import (
-	"crypto/sha256"
 	"net/http"
-	"time"
+	"os"
 
-	"godwagin/models"
-
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-contrib/sessions"
+	"github.com/auth0-community/go-auth0"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/xid"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/net/context"
+	jose "gopkg.in/square/go-jose.v2"
 )
 
 type AuthHandler struct {
@@ -28,111 +23,19 @@ func NewAuthHandler(ctx context.Context, collection *mongo.Collection) *AuthHand
 	}
 }
 
-type Claims struct {
-	Username string `json:"username"`
-	jwt.StandardClaims
-}
-
-type JWTOutput struct {
-	Token   string    `json:"token"`
-	Expires time.Time `json:"expires"`
-}
-
-// swagger:operation POST /login auth logs in
-// Login with username and password
-// ---
-// produces:
-// - application/json
-// responses:
-//
-//	'200':
-//	    description: Successful operation
-//	'401':
-//	    description: Invalid credentials
-func (handler *AuthHandler) LoginHandler(c *gin.Context) {
-	var user models.User
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	h := sha256.New()
-
-	cur := handler.collection.FindOne(handler.ctx, bson.M{
-		"username": user.Username,
-		"password": string(h.Sum([]byte(user.Password))),
-	})
-	if cur.Err() != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
-		return
-	}
-
-	sessionToken := xid.New().String()
-	session := sessions.Default(c)
-	session.Set("username", user.Username)
-	session.Set("token", sessionToken)
-	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error:": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "User signed in"})
-}
-
-// swagger:operation POST /refresh auth refresh
-// Refresh token
-// ---
-// produces:
-// - application/json
-// responses:
-//
-//	'200':
-//	    description: Successful operation
-//	'401':
-//	    description: Invalid credentials
-func (handler *AuthHandler) RefreshHandler(c *gin.Context) {
-	session := sessions.Default(c)
-	sessionToken := session.Get("token")
-	sessionUser := session.Get("username")
-	if sessionToken == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session cookie"})
-		return
-	}
-
-	sessionToken = xid.New().String()
-	session.Set("username", sessionUser.(string))
-	session.Set("token", sessionToken)
-	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error:": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "New session issued"})
-}
-
-// swagger:operation POST /login auth Logout
-// Signing out
-// ---
-// responses:
-//
-//	'200':
-//	    description: Successful operation
-func (handler *AuthHandler) LogoutHandler(c *gin.Context) {
-	session := sessions.Default(c)
-	session.Clear()
-	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error:": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Logged out..."})
-}
-
 func (handler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session := sessions.Default(c)
-		if sessionToken := session.Get("token"); sessionToken == nil {
-			c.JSON(http.StatusForbidden, gin.H{"message": "Not logged in"})
+		var auth0Domain = "https://" + os.Getenv("AUTH0_DOMAIN") + "/"
+		client := auth0.NewJWKClient(auth0.JWKClientOptions{URI: auth0Domain + ".well-known/jwks.json"}, nil)
+		configuration := auth0.NewConfiguration(client, []string{os.Getenv("AUTH0_API_IDENTIFIER")}, auth0Domain, jose.RS256)
+		validator := auth0.NewValidator(configuration, nil)
+
+		_, err := validator.ValidateRequest(c.Request)
+
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token"})
 			c.Abort()
+			return
 		}
 		c.Next()
 	}
