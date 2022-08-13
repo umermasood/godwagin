@@ -2,18 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
-	"net/http"
-	"time"
-
-	"godwagin/models"
-
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"godwagin/models"
 	"golang.org/x/net/context"
+	"log"
+	"net/http"
+	"time"
 )
 
 type RecipesHandler struct {
@@ -57,7 +55,7 @@ func (handler *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 	}
 
 	log.Println("Remove cache from Redis")
-	handler.redisClient.Del(handler.ctx, "recipes")
+	handler.redisClient.Del("recipes")
 
 	c.JSON(http.StatusOK, recipe)
 }
@@ -72,7 +70,7 @@ func (handler *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 //	'200':
 //	    description: Successful operation
 func (handler *RecipesHandler) ListRecipesHandler(c *gin.Context) {
-	val, err := handler.redisClient.Get(handler.ctx, "recipes").Result()
+	val, err := handler.redisClient.Get("recipes").Result()
 	if err == redis.Nil {
 		log.Printf("Request to MongoDB")
 		cur, err := handler.collection.Find(handler.ctx, bson.M{})
@@ -90,7 +88,7 @@ func (handler *RecipesHandler) ListRecipesHandler(c *gin.Context) {
 		}
 
 		data, _ := json.Marshal(recipes)
-		handler.redisClient.Set(handler.ctx, "recipes", string(data), 0)
+		handler.redisClient.Set("recipes", string(data), 0)
 		c.JSON(http.StatusOK, recipes)
 	} else if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -146,7 +144,7 @@ func (handler *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 	}
 
 	log.Println("Clearing Redis Cache")
-	handler.redisClient.Del(handler.ctx, "recipes")
+	handler.redisClient.Del("recipes")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been updated"})
 }
@@ -182,7 +180,7 @@ func (handler *RecipesHandler) DeleteRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been deleted"})
 
 	log.Println("Clearing Redis Cache")
-	handler.redisClient.Del(handler.ctx, "recipes")
+	handler.redisClient.Del("recipes")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been updated"})
 }
