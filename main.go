@@ -50,8 +50,8 @@ func init() {
 	recipesCollection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:55000",
-		Password: "redispw",
+		Addr:     "localhost:6379",
+		Password: "",
 		DB:       0,
 	})
 
@@ -67,7 +67,7 @@ func init() {
 func main() {
 	router := gin.Default()
 
-	store, _ := redisStore.NewStore(10, "tcp", "localhost:55000", "redispw", []byte("secret"))
+	store, _ := redisStore.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
 	router.Use(sessions.Sessions("recipes_api", store))
 
 	router.GET("/recipes", recipesHandler.ListRecipesHandler)
