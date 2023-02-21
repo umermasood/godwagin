@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"github.com/gin-contrib/cors"
 	"godwagin/handlers"
 	"log"
 	"os"
@@ -66,6 +67,7 @@ func init() {
 
 func main() {
 	router := gin.Default()
+	router.Use(cors.Default())
 
 	store, _ := redisStore.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
 	router.Use(sessions.Sessions("recipes_api", store))
