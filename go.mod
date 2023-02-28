@@ -9,6 +9,7 @@ require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/rs/xid v1.4.0
+	github.com/streadway/amqp v1.0.0
 	go.mongodb.org/mongo-driver v1.9.1
 	golang.org/x/net v0.0.0-20220526153639-5463443f8c37
 )
