@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  api:
+    image: recipes-api
+    environment:
+      - MONGO_URI=mongodb://admin:password@mongodb-gwgin:27017/
+      - MONGO_DATABASE=demo
+      - REDIS_URI=redis-gwgin:6379
+    networks:
+      - api_network
+    external_links:
+      - mongodb-gwgin
+      - redis-gwgin
+    deploy:
+      replicas: 5
+
+  redis-gwgin:
+    image: redis
+    networks:
+      - api_network
+
+  mongodb-gwgin:
+    image: mongo
+    networks:
+      - api_network
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+
+  nginx-gwgin:
+    image: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - $PWD/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api
+    networks:
+      - api_network
+
+networks:
+  api_network:
