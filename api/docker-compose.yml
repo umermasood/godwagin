@@ -15,6 +15,13 @@ services:
     deploy:
       replicas: 5
 
+  dashboard:
+    image: dashboard
+    networks:
+      - api_network
+    external_links:
+      - api
+
   redis-gwgin:
     image: redis
     networks:
